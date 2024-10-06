@@ -10,7 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { ArrowUpDown } from "lucide-react"
+import { ArrowUpDown, Loader2, ExternalLink } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface RedditPost {
   title: string;
@@ -64,45 +65,89 @@ export function PostsTable({ subredditName }: { subredditName: string }) {
     setPosts(sortedPosts)
   }
 
-  if (isLoading) return <div>Loading...</div>
-  if (error) return <div className="text-red-500">{error}</div>
+  if (isLoading) return (
+    <div className="flex justify-center items-center h-64">
+      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+    </div>
+  )
+  
+  if (error) return (
+    <div className="text-red-500 bg-red-100 border border-red-400 rounded-md p-4 my-4">
+      {error}
+    </div>
+  )
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Title</TableHead>
-          <TableHead>
-            <Button variant="ghost" onClick={() => sortPosts('score')}>
-              Score <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-          </TableHead>
-          <TableHead>Content</TableHead>
-          <TableHead>URL</TableHead>
-          <TableHead>
-            <Button variant="ghost" onClick={() => sortPosts('num_comments')}>
-              Comments <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-          </TableHead>
-          <TableHead>Created (UTC)</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {posts.map((post) => (
-          <TableRow key={post.url}>
-            <TableCell>{post.title}</TableCell>
-            <TableCell>{post.score}</TableCell>
-            <TableCell>{post.selftext.substring(0, 100)}...</TableCell>
-            <TableCell>
-              <a href={post.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                Link
-              </a>
-            </TableCell>
-            <TableCell>{post.num_comments}</TableCell>
-            <TableCell>{new Date(post.created_utc * 1000).toLocaleString()}</TableCell>
+    <div className="overflow-x-auto">
+      <Table className="w-full">
+        <TableHeader>
+          <TableRow className="bg-gray-700">
+            <TableHead className="text-left font-semibold text-gray-200">Title</TableHead>
+            <TableHead>
+              <Button 
+                variant="ghost" 
+                onClick={() => sortPosts('score')}
+                className={cn(
+                  "text-gray-200 hover:text-white",
+                  sortField === 'score' && "underline"
+                )}
+              >
+                Score <ArrowUpDown className="ml-2 h-4 w-4" />
+              </Button>
+            </TableHead>
+            <TableHead className="text-left font-semibold text-gray-200">Content</TableHead>
+            <TableHead className="text-left font-semibold text-gray-200">URL</TableHead>
+            <TableHead>
+              <Button 
+                variant="ghost" 
+                onClick={() => sortPosts('num_comments')}
+                className={cn(
+                  "text-gray-200 hover:text-white",
+                  sortField === 'num_comments' && "underline"
+                )}
+              >
+                Comments <ArrowUpDown className="ml-2 h-4 w-4" />
+              </Button>
+            </TableHead>
+            <TableHead className="text-left font-semibold text-gray-200">Created (UTC)</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {posts.map((post, index) => (
+            <TableRow 
+              key={post.url}
+              className={cn(
+                "hover:bg-gray-700 transition-colors",
+                index % 2 === 0 ? "bg-gray-800" : "bg-gray-750"
+              )}
+            >
+              <TableCell className="font-medium text-white">{post.title}</TableCell>
+              <TableCell className="text-center">
+                <span className="px-2 py-1 bg-blue-500 text-white rounded-full text-sm">
+                  {post.score}
+                </span>
+              </TableCell>
+              <TableCell className="text-gray-300">{post.selftext.substring(0, 100)}...</TableCell>
+              <TableCell>
+                <a 
+                  href={post.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-blue-400 hover:text-blue-300 flex items-center"
+                >
+                  Link <ExternalLink className="ml-1 h-4 w-4" />
+                </a>
+              </TableCell>
+              <TableCell className="text-center">
+                <span className="px-2 py-1 bg-purple-500 text-white rounded-full text-sm">
+                  {post.num_comments}
+                </span>
+              </TableCell>
+              <TableCell className="text-gray-300">{new Date(post.created_utc * 1000).toLocaleString()}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
