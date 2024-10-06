@@ -327,6 +327,9 @@ Categorization result: {"solution_request":true,"pain_anger":false,"advice_reque
   - Do not specify the JSON output structure directly in the prompt.
 - **Concurrency**:
   - Run the categorization process concurrently for multiple posts to improve performance.
+- **Response Parsing**:
+  - Use `zodResponseFormat` from `openai/helpers/zod` to ensure proper response formatting.
+  - Parse the OpenAI API response correctly, typically using `JSON.parse()` on the response content.
 
 ### 5. UI/UX Details
 
@@ -361,6 +364,85 @@ Categorization result: {"solution_request":true,"pain_anger":false,"advice_reque
 
 - Implement error handling for API requests.
 - Display user-friendly messages in the UI when errors occur.
+
+### 9. Data Processing and Filtering
+
+- When defining themes or categories:
+  - Include a `key` property that matches the property names in the categorization schema.
+  - Ensure consistency between the categorization schema and the theme definitions.
+- When filtering categorized data:
+  - Use boolean values from the categorization results to filter posts into appropriate themes.
+  - Double-check that the filtering logic correctly matches the structure of the categorization results.
+
+### 10. Debugging and Logging
+
+- Implement comprehensive logging throughout the application, especially in API routes and data processing functions.
+- Log intermediate results, such as the number of posts fetched and categorized, to help identify issues in the data pipeline.
+- Use `console.log` statements strategically to track the flow of data and catch potential issues early.
+
+### 11. Error Handling
+
+- Implement try-catch blocks in all asynchronous operations, especially those involving external API calls.
+- Provide informative error messages that can help diagnose issues quickly.
+- Consider implementing a custom error handling middleware for API routes to standardize error responses.
+
+### 12. Component Integration and Data Flow
+
+- Ensure proper data flow between parent and child components:
+  - Pass data and callback functions as props from parent to child components.
+  - Verify that prop types match between parent and child components.
+- Implement proper state management in parent components:
+  - Use useState for local component state.
+  - Use useEffect for side effects like data fetching.
+- Ensure child components correctly consume and render passed props:
+  - Implement proper type checking for props.
+  - Handle cases where props might be undefined or null.
+
+### 13. Debugging and Troubleshooting
+
+- Implement comprehensive logging throughout the application:
+  - Log important state changes and data fetching results.
+  - Use descriptive log messages to track the flow of data.
+- Utilize browser developer tools:
+  - Check the console for errors and log messages.
+  - Use the React Developer Tools to inspect component hierarchy and props.
+- Implement error boundaries to catch and display errors gracefully.
+
+### 14. Component Rendering and Conditional Logic
+
+- Implement proper conditional rendering:
+  - Handle loading states with appropriate UI feedback.
+  - Display error messages when data fetching or processing fails.
+  - Ensure components gracefully handle empty or null data.
+- Use React.Fragment or shorthand <> </> to wrap multiple elements without adding extra nodes to the DOM.
+
+### 15. API Integration and Data Processing
+
+- Implement robust error handling in API calls:
+  - Use try-catch blocks to handle exceptions.
+  - Provide informative error messages for different types of failures.
+- Process API responses correctly:
+  - Ensure data structures match between API responses and component expectations.
+  - Implement data transformation functions if necessary to format API data for component consumption.
+
+### 16. Performance Considerations
+
+- Implement proper memoization techniques:
+  - Use React.memo for functional components that render often with the same props.
+  - Use useMemo for expensive computations.
+  - Use useCallback for functions passed as props to child components.
+- Optimize re-renders:
+  - Avoid unnecessary re-renders by properly structuring component hierarchy.
+  - Use keys correctly in list rendering to help React identify which items have changed.
+
+### 17. Testing and Quality Assurance
+
+- Implement unit tests for critical components and functions:
+  - Test components in isolation using tools like Jest and React Testing Library.
+  - Implement integration tests for connected components.
+- Perform thorough manual testing:
+  - Test all user interactions and edge cases.
+  - Verify correct data display and updates across different scenarios.
 
 ---
 

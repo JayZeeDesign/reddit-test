@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PostsTable } from "@/components/PostsTable"
+import { ThemesAnalysis } from "@/components/ThemesAnalysis"
 
 export default function SubredditPage({ params }: { params: { name: string } }) {
   return (
@@ -14,7 +15,7 @@ export default function SubredditPage({ params }: { params: { name: string } }) 
           <PostsTable subredditName={params.name} />
         </TabsContent>
         <TabsContent value="themes">
-          <p>Themes analysis will be implemented here.</p>
+          <ThemesAnalysis subredditName={params.name} />
         </TabsContent>
       </Tabs>
     </div>
