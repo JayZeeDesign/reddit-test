@@ -4,6 +4,13 @@ Use this guide to set up the authentication for this project.
 
 It uses Clerk for authentication and integrates Supabase to store user profiles.
 
+Write the complete code for every step. Do not get lazy. Write everything that is needed.
+
+Your goal is to completely finish whatever the user asks for.
+
+Don't update .env.local, assume user already updated it
+
+
 ## Helpful Links
 
 If you get stuck, refer to the following links:
@@ -22,8 +29,9 @@ Install the necessary packages for Clerk and Supabase:
 npm install @clerk/nextjs @supabase/supabase-js
 ```
 
-### 2. Set Your Environment Variables
+### 2. Setup
 
+#### 2.1 Set Your Environment Variables
 Add these keys to your `.env.local` file or create the file if it doesn't exist. You can retrieve these keys from the respective dashboards.
 
 ```bash
@@ -41,19 +49,64 @@ SUPABASE_SERVICE_KEY=
   - `SUPABASE_URL`: Your Supabase project URL.
   - `SUPABASE_SERVICE_KEY`: Your Supabase service role key (for admin access). **Keep this key secure and never expose it on the client side.**
 
+#### 2.2. Create the Profiles Table in Supabase
+
+In your Supabase dashboard, run the following SQL query in the SQL Editor to create the `profiles` table:
+
+```sql
+CREATE TABLE profiles (
+  user_id text PRIMARY KEY,
+  email text NOT NULL UNIQUE,
+  tier text DEFAULT 'Free',
+  stripe_customer_id text,
+  stripe_subscription_id text,
+  created_at timestamp with time zone DEFAULT now()
+);
+```
+
+#### 2.3. Enable Row-Level Security (RLS)
+
+Enable Row-Level Security on the `profiles` table to ensure that users can only access their own data.
+
+```sql
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+```
+
+Create policies to allow users to `SELECT`, `INSERT`, and `UPDATE` their own profiles.
+
+```sql
+-- Allow users to select their own profile
+CREATE POLICY "Allow individual SELECT" ON profiles
+FOR SELECT
+USING (auth.uid()::text = user_id);
+
+-- Allow users to insert their own profile
+CREATE POLICY "Allow individual INSERT" ON profiles
+FOR INSERT
+WITH CHECK (auth.uid()::text = user_id);
+
+-- Allow users to update their own profile
+CREATE POLICY "Allow individual UPDATE" ON profiles
+FOR UPDATE
+USING (auth.uid()::text = user_id);
+```
+
+
 ### 3. Build a Sign-Up Page
 
 Create a new file to render the sign-up page. Import the `<SignUp />` component from `@clerk/nextjs` and render it.
 
-**app/sign-up/[[...sign-up]]/page.tsx**
+**app/signup/[[...sign-up]]/page.tsx**
 
-```typescript:app/sign-up/[[...sign-up]]/page.tsx
+```typescript:app/signup/[[...sign-up]]/page.tsx
 import { SignUp } from '@clerk/nextjs';
 
-export default function Page() {
-  return <div className="flex h-screen items-center justify-center">
-        <SignUp />
+export default function SignUpPage() {
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <SignUp />
     </div>
+  );
 }
 ```
 
@@ -61,42 +114,44 @@ export default function Page() {
 
 Create a new file to render the sign-in page. Import the `<SignIn />` component from `@clerk/nextjs` and render it.
 
-**app/sign-in/[[...sign-in]]/page.tsx**
+**app/login/[[...sign-in]]/page.tsx**
 
-```typescript:app/sign-in/[[...sign-in]]/page.tsx
+```typescript:app/login/[[...sign-in]]/page.tsx
 import { SignIn } from '@clerk/nextjs';
 
-export default function Page() {
-  return <div className="flex h-screen items-center justify-center">
-        <SignIn />
+export default function SignInPage() {
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <SignIn />
     </div>
+  );
 }
 ```
 
 ### 5. Make the Sign-Up and Sign-In Routes Public
 
-By default, `clerkMiddleware()` makes all routes public. If you have configured `clerkMiddleware()` to protect all routes, you need to make the sign-up and sign-in routes public.
+Configure the middleware to make the sign-up, sign-in, and login routes public. This ensures that unauthenticated users can access these pages.
 
 **middleware.ts**
 
 ```typescript:middleware.ts
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { authMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
+const publicRoutes = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/login(.*)',
+  '/signup(.*)',
+  // Add any other public routes here
+]);
 
-export default clerkMiddleware((auth, request) => {
-  if (!isPublicRoute(request)) {
-    auth().protect();
-  }
+export default authMiddleware({
+  publicRoutes,
 });
 
 export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files
-    '/((?!_next|.*\\..*).*)',
-    // Run for API routes
-    '/(api|trpc)(.*)',
-  ],
+    matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
 };
 ```
 
@@ -147,49 +202,7 @@ export default function RootLayout({
 
 We will use Supabase to create a `profiles` table that stores additional user information for each user.
 
-#### 7.1. Create the Profiles Table in Supabase
-
-In your Supabase dashboard, run the following SQL query in the SQL Editor to create the `profiles` table:
-
-```sql
-CREATE TABLE profiles (
-  user_id text PRIMARY KEY,
-  email text NOT NULL UNIQUE,
-  tier text DEFAULT 'Free',
-  stripe_customer_id text,
-  stripe_subscription_id text,
-  created_at timestamp with time zone DEFAULT now()
-);
-```
-
-#### 7.2. Enable Row-Level Security (RLS)
-
-Enable Row-Level Security on the `profiles` table to ensure that users can only access their own data.
-
-```sql
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-```
-
-Create policies to allow users to `SELECT`, `INSERT`, and `UPDATE` their own profiles.
-
-```sql
--- Allow users to select their own profile
-CREATE POLICY "Allow individual SELECT" ON profiles
-FOR SELECT
-USING (auth.uid()::text = user_id);
-
--- Allow users to insert their own profile
-CREATE POLICY "Allow individual INSERT" ON profiles
-FOR INSERT
-WITH CHECK (auth.uid()::text = user_id);
-
--- Allow users to update their own profile
-CREATE POLICY "Allow individual UPDATE" ON profiles
-FOR UPDATE
-USING (auth.uid()::text = user_id);
-```
-
-#### 7.3. Use Your Existing Supabase Client with Admin Access
+#### 7.1. Use Your Existing Supabase Client with Admin Access
 
 Since you already have a Supabase client with admin access, ensure it uses the service role key. Your Supabase client should look like this:
 
@@ -206,7 +219,7 @@ export const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 This client uses the `SUPABASE_SERVICE_KEY`, which has admin access. **Do not expose this key on the client side.** Keep all operations using this client on the server side.
 
-#### 7.4. Sync Clerk Users with Supabase Profiles Using an API Route
+#### 7.2. Sync Clerk Users with Supabase Profiles Using an API Route
 
 To synchronize Clerk users with Supabase profiles, we'll create an API route that is called when a user signs in. This API route will ensure that a profile exists for the user in Supabase.
 
@@ -328,7 +341,7 @@ export default function RootLayout({
 
 Now, whenever a user signs in, the `SyncProfile` component will call the `/api/sync-profile` endpoint to ensure the user's profile exists in Supabase.
 
-#### 7.5. Managing Stripe Customer and Subscription IDs
+#### 7.3. Managing Stripe Customer and Subscription IDs
 
 If you intend to integrate with Stripe to manage subscriptions, you can update the `profiles` table as follows:
 
@@ -429,6 +442,17 @@ async function updateTier(userId: string, newTier: string) {
 }
 ```
 
+### 6. Update Environment Variables
+
+Ensure that your `.env.local` file contains the correct URLs for sign-in and sign-up pages:
+
+```bash
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_publishable_key
+CLERK_SECRET_KEY=your_secret_key
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup
+```
+
 ---
 
 By following these steps, you have integrated Supabase into your authentication flow using Clerk. The `profiles` table in Supabase will store additional user data such as `user_id`, `email`, `tier`, `stripe_customer_id`, and `stripe_subscription_id`, allowing you to manage user profiles and subscription information effectively.
@@ -439,65 +463,3 @@ If you need further assistance, refer to the official documentation:
 
 - [Clerk Documentation](https://clerk.com/docs)
 - [Supabase Documentation](https://supabase.com/docs)
-
-
-## Additional Implementation Guidelines
-
-### 1. Clerk Authentication Integration
-
-- Ensure `ClerkProvider` wraps the entire application in `app/layout.tsx`.
-- Use `SignedIn` and `SignedOut` components to conditionally render content based on authentication state.
-- Implement `SignInButton` and `UserButton` components in the layout for easy access to authentication actions.
-
-### 2. Route Protection
-
-- Use Clerk's `authMiddleware` in `middleware.ts` to protect routes.
-- Clearly define public routes using `createRouteMatcher`.
-- Ensure sign-in and sign-up routes are always public.
-
-### 3. User Profile Synchronization
-
-- Implement a `SyncProfile` component that runs on every authenticated page load.
-- Create an API route (`/api/sync-profile`) to handle profile synchronization between Clerk and Supabase.
-- Ensure the sync process is efficient and handles potential errors gracefully.
-
-### 4. Supabase Integration
-
-- Use a service role key for Supabase client initialization to allow admin-level database operations.
-- Keep the Supabase client initialization in a separate file (e.g., `lib/supabaseClient.ts`).
-- Use environment variables for Supabase URL and service key.
-
-### 5. Profile Management
-
-- Implement a profile page that fetches and displays user data from Supabase.
-- Include functionality to update user tier or other profile information.
-- Handle loading states and potential errors in profile data fetching and updating.
-
-### 6. Subscription Management
-
-- Create a separate page for subscription management.
-- Implement tier upgrade functionality that updates both Supabase and any external services (e.g., Stripe).
-- Ensure the subscription page is only accessible to authenticated users.
-
-### 7. Error Handling and User Feedback
-
-- Implement comprehensive error handling in all API routes and client-side functions.
-- Provide clear feedback to users for successful actions and errors.
-- Use try-catch blocks for async operations, especially those involving external services.
-
-### 8. Type Safety
-
-- Use TypeScript interfaces for all data structures, especially those related to user profiles and API responses.
-- Ensure proper type checking for props in React components.
-
-### 9. Environment Variables
-
-- Use `.env.local` for local development and ensure it's listed in `.gitignore`.
-- Document all required environment variables in the project README.
-- Ensure all sensitive keys (Clerk, Supabase, etc.) are stored as environment variables.
-
-### 10. Testing
-
-- Implement unit tests for critical authentication and profile management functions.
-- Test both authenticated and unauthenticated user flows.
-- Mock external services (Clerk, Supabase) in tests to ensure consistent behavior.

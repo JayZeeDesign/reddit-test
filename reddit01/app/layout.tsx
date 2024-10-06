@@ -2,6 +2,13 @@ import { ThemeProvider } from 'next-themes'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import "./globals.css"
+import {
+  ClerkProvider,
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from '@clerk/nextjs';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -16,12 +23,22 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ClerkProvider>
+      <html lang="en">
+        <body>
+          <header className="absolute top-0 right-0 w-full">
+              <div className="bg-transparent flex justify-end p-4">
+                <SignedOut>
+                  <SignInButton />
+                </SignedOut>
+                <SignedIn>
+                  <UserButton />
+                </SignedIn>
+              </div>
+          </header>
           {children}
-        </ThemeProvider>
-      </body>
-    </html>
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }
